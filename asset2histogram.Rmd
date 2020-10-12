@@ -1,0 +1,17 @@
+---
+title: "Distribution of NY State schools by student SES "
+output: html_notebook
+---
+
+
+```{r}
+ggplot(a, mapping = aes(x = disadv_prop)) +
+  geom_histogram(binwidth = 0.05, fill = "white", color = "black") +
+  xlab("Proportion of economically disadvantaged students within the school") +
+  ylab("Number of schools") +
+  xlim(c(0,1)) +
+  ggtitle("Distribution of NY State schools by student SES")
+
+```
+
+The plot above shows the distribution of schools in New York State according to the proportion of students in the schools that are classified as economically disadvantaged. The distribution is skewed to the right, indicating a high prevalence of schools that consist of more than 80% economically disadvantaged students.

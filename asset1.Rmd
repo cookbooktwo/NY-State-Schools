@@ -1,0 +1,61 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+
+exp <- read_csv("Expenditures per Pupil.csv")
+math <- read_csv("Annual EM MATH.csv")
+
+math_2019_all <- math %>% filter(YEAR == 2019, SUBGROUP_NAME == "All Students")
+socioecon <- math %>%
+  filter(YEAR == 2019, ASSESSMENT_NAME %in% c("MATH3", "MATH4", "MATH5")) %>%
+  group_by(ENTITY_NAME) %>%
+  summarize(disadv_tested = sum(NUM_TESTED[SUBGROUP_NAME == "Economically Disadvantaged"]),
+            tested = sum(NUM_TESTED[SUBGROUP_NAME == "All Students"]),
+            disadv_prop = disadv_tested/tested,
+            disadv90 = case_when((disadv_prop > 0.90 ~ 1), (disadv_prop <= 0.90) ~ 0),
+            disadv80 = case_when((disadv_prop > 0.80 ~ 1), (disadv_prop <= 0.80) ~ 0),
+            disadv70 = case_when((disadv_prop > 0.70 ~ 1), (disadv_prop <= 0.70) ~ 0),
+            disadv60 = case_when((disadv_prop > 0.60 ~ 1), (disadv_prop <= 0.60) ~ 0),
+            disadv50 = case_when((disadv_prop > 0.50 ~ 1), (disadv_prop <= 0.50) ~ 0))
+
+exp_math <- math_2019_all %>% left_join(socioecon, by = "ENTITY_NAME") %>% left_join(exp, by = "ENTITY_NAME")
+
+# Select only individual schools (not entire districts),
+# select just the MATH5 assessment,
+# select schools with expenditure per public betweeen $5,000 and $30,000,
+# and select schools with at least 349 students (the 25th percentile)
+a <- exp_math %>% filter(str_sub(ENTITY_CD.x, -4, -1) != "0000", ASSESSMENT_NAME %in% c("MATH5"), PER_FED_STATE_LOCAL_EXP < 30000, PER_FED_STATE_LOCAL_EXP >= 5000, PUPIL_COUNT_TOT > 349)
+
+# Recode disadv80 (indicator for whether 80% of the school's test-takers are
+# economically disadvantaged) as a string
+a <- a %>% mutate(disadv80 = case_when((disadv80 == 1) ~ "Yes", (disadv80 == 0) ~ "No"))
+
+# Recode PER_PROF (indicator for the percent of students achieving proficiency)
+# as a numeric variable
+a$PER_PROF <- as.numeric(a$PER_PROF)
+
+ggplot(a) +
+  geom_point(aes(x = PER_FED_STATE_LOCAL_EXP,
+                 y = PER_PROF,
+                 color = disadv80)) +
+  facet_wrap(~ ASSESSMENT_NAME) +
+  xlab("Combined Federal, State, and Local Expenditure per Pupil") +
+  ylab("Percent of Test-Takers Scoring Proficient") +
+  ggtitle("School-level Performances on Grade 5 Math Assessment (New York State)")
+
+
+plot(cars)
+```
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
